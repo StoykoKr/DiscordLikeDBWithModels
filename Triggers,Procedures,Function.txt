@@ -1,0 +1,70 @@
+CREATE FUNCTION GetLastServerId ()
+RETURNS INT
+AS
+BEGIN		
+    RETURN (SELECT TOP (1) Id FROM Servers ORDER BY Id DESC)
+END
+go
+
+CREATE PROCEDURE CreateNewServer @UserId int, @ServerName varchar(100)
+AS
+INSERT INTO Servers(Name)
+VALUES (@ServerName)
+
+INSERT INTO Memberships(Id_User,Id_Server,RoleId)
+VALUES (@UserId,dbo.GetLastServerId(),
+(SELECT Id FROM Roles WHERE Server_Id = dbo.GetLastServerId() and Name = 'Owner'))
+
+GO
+
+CREATE PROCEDURE AddDefaultMembership @UserId INT, @ServerId INT
+AS
+INSERT INTO Memberships(Id_User,Id_Server,RoleId)
+VALUES (@UserId,@ServerId,(SELECT Id FROM Roles WHERE Server_Id = @ServerId and Name = 'Default'))
+GO
+
+CREATE TRIGGER AddDefaultRolesAndCategory  
+ON Servers
+AFTER INSERT   
+AS  
+   INSERT INTO Roles (Server_Id,Name)
+   VALUES
+   (dbo.GetLastServerId(), 'Default'),
+   (dbo.GetLastServerId(), 'Owner')
+
+   INSERT INTO Categories(Server_Id,Name)
+   VALUES
+   (dbo.GetLastServerId(), 'Default')
+   
+GO  
+
+CREATE TRIGGER AddDefaultCategoryOwnerPermission
+ON Categories
+AFTER INSERT
+AS
+INSERT INTO CATEGORY_ROLE_PERMISSION(CATEGORY_ID,ROLE_ID)
+VALUES ((SELECT TOP (1) Id FROM Categories ORDER BY Id DESC),
+(SELECT Id FROM Roles WHERE Server_Id = (SELECT TOP (1) Server_Id FROM Categories ORDER BY Id DESC) AND Name = 'Owner'))
+GO
+
+CREATE TRIGGER UserInteractionTrigger
+ON USER_INTERACTIONS
+AFTER INSERT
+AS
+IF NOT EXISTS(SELECT * FROM USER_INTERACTIONS 
+WHERE Id_User_One = (SELECT Id_User_Two FROM inserted) AND Id_User_Two = (SELECT Id_User_One FROM inserted))
+BEGIN
+INSERT INTO USER_INTERACTIONS(Id_User_One,Id_User_Two)
+VALUES ((SELECT Id_User_Two FROM inserted),(SELECT Id_User_One FROM inserted))
+END
+IF EXISTS(SELECT * FROM USER_INTERACTIONS 
+WHERE Id_User_One = (SELECT Id_User_Two FROM inserted) AND Id_User_Two = (SELECT Id_User_One FROM inserted))
+BEGIN
+insert into Chats(CreatedOn)
+values (GETDATE())
+update USER_INTERACTIONS
+set Chat_Id = (SELECT TOP (1) Id FROM Chats ORDER BY Id DESC) 
+where (Id_User_One = (SELECT Id_User_One from inserted) and Id_User_Two = (SELECT Id_User_Two from inserted)) 
+OR (Id_User_One = (SELECT Id_User_Two from inserted) and Id_User_Two = (SELECT Id_User_One from inserted))
+END
+GO

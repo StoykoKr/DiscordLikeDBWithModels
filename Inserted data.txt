@@ -1,0 +1,58 @@
+use DiscordLikeDB
+INSERT INTO Users(Name,Tag)
+VALUES
+('Ivan','Ivan#2343'),
+('Sasho','Sasho#1103'),
+('Maria','Maria#6754')
+
+EXEC CreateNewServer @UserId = 1 , @ServerName = 'PLovdivOfficial'
+EXEC CreateNewServer @UserId = 3 , @ServerName = 'FriendsServer'
+
+EXEC AddDefaultMembership @UserId = 2 , @ServerId = 1
+EXEC AddDefaultMembership @UserId = 3 , @ServerId = 1
+EXEC AddDefaultMembership @UserId = 2 , @ServerId = 2
+
+INSERT INTO USER_INTERACTIONS(Id_User_One,Id_User_Two,Friend_Status)
+VALUES(2,3,'Friends')
+update USER_INTERACTIONS
+set Friend_Status = 'Friends'
+where Id_User_One = 3 and Id_User_Two = 2
+
+INSERT INTO USER_INTERACTIONS(Id_User_One,Id_User_Two,Friend_Status)
+VALUES(1,3,'Sent')
+update USER_INTERACTIONS
+set Friend_Status = 'Pending'
+where Id_User_One = 3 and Id_User_Two = 1
+
+INSERT INTO Messages(Chat_Id,SendBy,Content)
+VALUES
+(1,2,'Good morning'),
+(1,3,'gmorning'),
+(2,1,'yo'),
+(2,3,'sup'),
+(1,2,'need some help here')
+
+INSERT INTO Chats(CreatedOn)
+VALUES
+(GETDATE()),
+(GETDATE())
+
+INSERT INTO Text_Channels (Name,Category_Id,Chat_Id)
+VALUES('AllChat',1,3),
+('Chat',2,4)
+
+INSERT INTO Voice_Channels(Name,Category_Id,Text_Channel_Id)
+VALUES('VC',2,2)
+
+INSERT INTO Messages(Chat_Id,SendBy,Content)
+VALUES
+(4,3,'HELLOOO')
+
+
+INSERT INTO TEXT_ROLE_PERMISSION(ROLE_ID,TEXT_ID)
+VALUES 
+(4,2),
+(2,1)
+
+INSERT INTO VOICE_ROLE_PERMISSION(ROLE_ID,VOICE_ID)
+VALUES(4,1)
